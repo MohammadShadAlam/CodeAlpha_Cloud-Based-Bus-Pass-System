@@ -3,3 +3,5 @@ uvicorn[standard]
 PyJWT
 pwdlib[argon2]
 SQLAlchemy
+pydantic-settings
+psycopg[binary]
