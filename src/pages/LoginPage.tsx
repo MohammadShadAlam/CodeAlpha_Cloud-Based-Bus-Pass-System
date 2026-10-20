@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowRight, BusFront, Eye, EyeOff, Lock, Map as MapIcon, ShieldCheck, Ticket, UserRound, Zap } from 'lucide-react';
 import { useBooking } from '../hooks/useBooking';
 import { useProfile } from '../hooks/useProfile';
-import './signup.css'; // shared look with the Sign-up page
+import './Signup.css'; // shared look with the Sign-up page
 import './login.css';
 import { loginUser } from '../api';
 import { useAuth } from '../context/AuthContext';
