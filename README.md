@@ -1,34 +1,140 @@
-# Tripzo - India bus booking demo
+# Tripzo — Cloud-Based Bus Pass System
 
-A frontend-only, map-first bus booking prototype built with React, TypeScript, Vite, Tailwind CSS, React Router, Lucide React, React Leaflet and Leaflet.
+Tripzo is a web-based bus booking application designed to help users search for buses, manage bookings, and view booking details through a user-friendly interface.
 
-## Run locally
+## Live Demo
+
+- **Frontend:** https://code-alpha-bus-pass-sys-xi.vercel.app
+- **Backend API:** https://codealpha-cloud-based-bus-pass-system-k9ih.onrender.com
+- **API Documentation:** https://codealpha-cloud-based-bus-pass-system-k9ih.onrender.com/docs
+
+## Features
+
+- Bus search and booking workflow
+- Booking confirmation and booking details
+- My Bookings page
+- Booking cancellation
+- Booking status verification after page refresh
+- Responsive web interface
+- REST API integration with the backend
+
+*Note: Include only the features that are implemented and working in your deployed project.*
+
+## Technology Stack
+
+### Frontend
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+
+### Backend
+- Python
+- FastAPI
+- REST APIs
+
+### Deployment
+- Vercel — frontend hosting
+- Render — backend hosting
+
+## Project Structure
+
+```text
+Tripzo/
+├── src/                 # Frontend source code
+├── backend/
+│   └── app/
+│       └── main.py      # FastAPI application
+├── public/              # Public frontend assets
+├── .env.local           # Local environment configuration
+├── .env.production      # Production environment configuration
+├── vite.config.ts       # Vite configuration
+└── package.json         # Frontend dependencies and scripts
+```
+
+## Local Setup
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/MohammadShadAlam/CodeAlpha_Cloud-Based-Bus-Pass-System.git
+cd CodeAlpha_Cloud-Based-Bus-Pass-System
+```
+
+### 2. Set up the frontend
+
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Create or configure `.env.local` in the project root:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Start the frontend:
+
+```bash
 npm run dev
 ```
 
-Open the local URL printed by Vite. To verify a production bundle, use `npm run build`.
+### 3. Set up the backend
 
-## What to try
+Open a separate terminal and navigate to the backend directory.
 
-- Search curated sample pickup points by name, city, state / union territory or district. All 36 states and union territories are listed; detailed points are a **sample subset**, not complete India-wide coverage.
-- Pan and zoom the OpenStreetMap map, use device location with permission, click the map to set an approximate point, and preview a straight-line route.
-- Filter mock buses, choose seats, enter passenger details, apply demo code `TRIPZO10`, and confirm a **demo-only** booking.
-- View, cancel, print or download a booking summary. Bookings, recent locations and display name are saved to browser localStorage.
+Install the dependencies listed in the backend's requirements file, then run the FastAPI application using the correct module path and configuration for this project.
 
-Bus operators, schedules, fares, available seats and routes are illustrative. Map lines are approximate, not road routing. No backend, real availability, GPS tracking, payment processing, or valid ticket issuance is included. OpenStreetMap tiles require an internet connection and retain their required attribution on the map.
+For example, if the backend dependencies and application entry point match the standard FastAPI layout:
 
-## Structure
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
 
-`src/components/` contains reusable map, location, search, bus and booking UI. `src/pages/` contains screens. `src/layouts/` provides shared navigation. `src/data/` contains the replaceable mock datasets. `src/hooks/` stores shared frontend state. `src/types/` defines models and `src/utils/` contains booking summary actions.
-## Merged build notes
+The backend API documentation is available locally at:
 
-This project is the Tripzo sample with the best parts of the Roam sample merged in.
+`http://127.0.0.1:8000/docs`
 
-- **Profile** (`src/pages/ProfilePage.tsx`, `src/hooks/useProfile.ts`): personal details with validation, saved passengers, booking history, preferences. Stored in `localStorage` only. Saved details pre-fill the booking form and saved passengers can be quick-filled.
-- **Map** (`src/components/InteractiveMap.tsx`, `src/data/indiaMap.ts`): opens fitted to India, bounded to South Asia, zoom from country to street level, pickup/drop pins with labels and popups, approximate route line, Pin pickup / Pin drop mode and a Map guide.
-- **Tiles**: `mapTiles` in `src/data/indiaMap.ts` is the single swap point. The public OpenStreetMap tiles are for demos only; use a keyed provider in production. State/UT boundaries come from the tiles.
-- **Readability**: low-contrast text colours were darkened to AA contrast and the smallest labels enlarged.
-- **Background**: a very soft off-white to light-lavender gradient on `.app-shell` (end of `src/index.css`). Background only: no component changed.
+## Production Configuration
+
+The deployed frontend uses the production API base URL:
+
+```env
+VITE_API_BASE_URL=https://codealpha-cloud-based-bus-pass-system-k9ih.onrender.com
+```
+
+Keep local and production configuration separate. Do not commit passwords, private API keys, or other secrets to GitHub.
+
+## Testing
+
+The following checks were performed on the deployed application:
+
+- Backend health endpoint returned `{"status":"healthy"}`.
+- A test booking was created and checked after refreshing the page.
+- Booking cancellation completed successfully.
+- The booking status remained correct after refreshing the page.
+- The frontend production build completed successfully using `npm run build`.
+
+These checks confirm the observed results; database-level persistence should be verified separately if required.
+
+## Deployment
+
+- Frontend deployment: Vercel
+- Backend deployment: Render
+
+## Internship Project
+
+This project was developed as part of the **CodeAlpha Cloud Computing Internship**.
+
+## Author
+
+**Mohammad Shad Alam**
+
+GitHub: https://github.com/MohammadShadAlam
+
+---
+
+*Tripzo — Making bus booking simpler through a web-based application.*
