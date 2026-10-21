@@ -1,13 +1,13 @@
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import jwt
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from pwdlib import PasswordHash
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.database import Base, engine, get_db
-from app.models import Booking, Bus, User
+from app.models import Booking, BookingSeat, Bus, User
 
 
 # ---------- CONFIGURATION ----------
@@ -36,7 +36,7 @@ bearer_scheme = HTTPBearer()
 app = FastAPI(
     title="Tripzo API",
     description="Backend API for the Tripzo bus booking platform",
-    version="1.0.0",
+    version="1.1.0",
 )
 
 app.add_middleware(
@@ -66,11 +66,9 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    token = credentials.credentials
-
     try:
         payload = jwt.decode(
-            token,
+            credentials.credentials,
             SECRET_KEY,
             algorithms=[ALGORITHM],
         )
@@ -105,10 +103,11 @@ def health_check():
 
 @app.post("/setup-database")
 def setup_database():
+    # Creates missing tables but does not migrate existing columns.
     Base.metadata.create_all(bind=engine)
 
     return {
-        "message": "Tripzo database tables created successfully!"
+        "message": "Tripzo database tables checked successfully."
     }
 
 
@@ -133,6 +132,41 @@ def get_buses(db: Session = Depends(get_db)):
             }
             for bus in buses
         ],
+    }
+
+
+
+# ---------- OCCUPIED SEATS ----------
+
+@app.get("/buses/{bus_id}/occupied-seats")
+def get_occupied_seats(
+    bus_id: int,
+    journey_date: date,
+    db: Session = Depends(get_db),
+):
+    bus = db.get(Bus, bus_id)
+
+    if not bus:
+        raise HTTPException(
+            status_code=404,
+            detail="Bus not found.",
+        )
+
+    occupied_rows = (
+        db.query(BookingSeat.seat_number)
+        .filter(
+            BookingSeat.bus_id == bus_id,
+            BookingSeat.journey_date == journey_date,
+            BookingSeat.is_active.is_(True),
+        )
+        .order_by(BookingSeat.seat_number)
+        .all()
+    )
+
+    return {
+        "bus_id": bus_id,
+        "journey_date": journey_date.isoformat(),
+        "seat_numbers": [row[0] for row in occupied_rows],
     }
 
 
@@ -275,13 +309,13 @@ def update_my_profile(
             detail="Provide at least one field to update.",
         )
 
-    if "full_name" in changes and changes["full_name"] is not None:
+    if changes.get("full_name") is not None:
         current_user.full_name = changes["full_name"].strip()
 
-    if "email" in changes and changes["email"] is not None:
+    if changes.get("email") is not None:
         current_user.email = str(changes["email"]).lower()
 
-    if "phone" in changes and changes["phone"] is not None:
+    if changes.get("phone") is not None:
         current_user.phone = changes["phone"].strip()
 
     try:
@@ -420,17 +454,29 @@ def delete_saved_passenger(
 
 class BookingRequest(BaseModel):
     bus_id: int = Field(gt=0)
-    seats_booked: int = Field(gt=0, le=10)
+    journey_date: date
+    seat_numbers: list[int] = Field(min_length=1, max_length=10)
+
+    @field_validator("seat_numbers")
+    @classmethod
+    def validate_unique_seats(cls, values):
+        if any(seat < 1 for seat in values):
+            raise ValueError("Seat numbers must be positive.")
+
+        if len(values) != len(set(values)):
+            raise ValueError("Duplicate seat numbers are not allowed.")
+
+        return values
 
 
-@app.post("/bookings")
+@app.post("/bookings", status_code=201)
 def create_booking(
     request: BookingRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        # Lock the bus row while checking seat availability.
+        # Serializes booking attempts for the same bus.
         bus = db.execute(
             select(Bus)
             .where(Bus.id == request.bus_id)
@@ -443,45 +489,98 @@ def create_booking(
                 detail="Bus not found.",
             )
 
-        booked_seats = (
-            db.query(func.sum(Booking.seats_booked))
-            .filter(
-                Booking.bus_id == bus.id,
-                Booking.booking_status == "confirmed",
-            )
-            .scalar()
-            or 0
-        )
-
-        available_seats = bus.total_seats - booked_seats
-
-        if request.seats_booked > available_seats:
+        if any(
+            seat > bus.total_seats
+            for seat in request.seat_numbers
+        ):
             raise HTTPException(
                 status_code=400,
-                detail=f"Only {available_seats} seats are available.",
+                detail=f"Seat numbers must be between 1 and {bus.total_seats}.",
+            )
+
+        occupied_rows = (
+            db.query(BookingSeat.seat_number)
+            .filter(
+                BookingSeat.bus_id == bus.id,
+                BookingSeat.journey_date == request.journey_date,
+                BookingSeat.is_active.is_(True),
+                BookingSeat.seat_number.in_(request.seat_numbers),
+            )
+            .all()
+        )
+
+        occupied_numbers = {row[0] for row in occupied_rows}
+
+        if occupied_numbers:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": "Some selected seats are already booked.",
+                    "occupied_seats": sorted(occupied_numbers),
+                },
             )
 
         booking = Booking(
             user_id=current_user.id,
             bus_id=bus.id,
-            seats_booked=request.seats_booked,
+            seats_booked=len(request.seat_numbers),
+            journey_date=request.journey_date,
             booking_status="confirmed",
         )
 
         db.add(booking)
+        db.flush()
+
+        for seat_number in request.seat_numbers:
+            db.add(
+                BookingSeat(
+                    booking_id=booking.id,
+                    bus_id=bus.id,
+                    journey_date=request.journey_date,
+                    seat_number=seat_number,
+                    is_active=True,
+                )
+            )
+
+        # The PostgreSQL unique index protects against concurrent
+        # attempts to reserve the same bus/date/seat.
         db.commit()
         db.refresh(booking)
+
+        active_seat_count = (
+            db.query(func.count(BookingSeat.id))
+            .filter(
+                BookingSeat.bus_id == bus.id,
+                BookingSeat.journey_date == request.journey_date,
+                BookingSeat.is_active.is_(True),
+            )
+            .scalar()
+            or 0
+        )
 
         return {
             "message": "Booking created successfully!",
             "booking_id": booking.id,
             "user_id": booking.user_id,
             "bus_id": booking.bus_id,
+            "journey_date": booking.journey_date.isoformat(),
+            "seat_numbers": request.seat_numbers,
             "seats_booked": booking.seats_booked,
             "booking_status": booking.booking_status,
-            "available_seats": available_seats - request.seats_booked,
+            "available_seats": max(
+                0, bus.total_seats - active_seat_count
+            ),
         }
 
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "One or more selected seats were just booked. "
+                "Please refresh and select available seats."
+            ),
+        )
     except HTTPException:
         db.rollback()
         raise
@@ -501,7 +600,6 @@ def get_user_bookings(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # A user can access only their own bookings.
     if user_id != current_user.id:
         raise HTTPException(
             status_code=403,
@@ -520,6 +618,13 @@ def get_user_bookings(
     for booking in bookings:
         bus = db.get(Bus, booking.bus_id)
 
+        seat_rows = (
+            db.query(BookingSeat.seat_number)
+            .filter(BookingSeat.booking_id == booking.id)
+            .order_by(BookingSeat.seat_number)
+            .all()
+        )
+
         result.append({
             "booking_id": booking.id,
             "user_id": booking.user_id,
@@ -529,6 +634,11 @@ def get_user_bookings(
             "destination": bus.destination if bus else None,
             "departure_time": bus.departure_time if bus else None,
             "arrival_time": bus.arrival_time if bus else None,
+            "journey_date": (
+                booking.journey_date.isoformat()
+                if booking.journey_date else None
+            ),
+            "seat_numbers": [row[0] for row in seat_rows],
             "seats_booked": booking.seats_booked,
             "booking_status": booking.booking_status,
             "fare_per_seat": bus.fare if bus else None,
@@ -575,8 +685,18 @@ def cancel_booking(
 
     try:
         booking.booking_status = "cancelled"
+
+        db.query(BookingSeat).filter(
+            BookingSeat.booking_id == booking.id,
+            BookingSeat.is_active.is_(True),
+        ).update(
+            {BookingSeat.is_active: False},
+            synchronize_session=False,
+        )
+
         db.commit()
         db.refresh(booking)
+
     except Exception:
         db.rollback()
         raise HTTPException(

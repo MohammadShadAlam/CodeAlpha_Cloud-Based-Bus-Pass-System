@@ -1,7 +1,6 @@
 
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ||
-  'http://127.0.0.1:8000'
+  import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 ).replace(/\/+$/, '');
 
 // ---------- BUSES ----------
@@ -19,7 +18,6 @@ export type ApiBus = {
 
 export async function getBuses(): Promise<ApiBus[]> {
   const response = await fetch(`${API_BASE_URL}/buses`);
-
   if (!response.ok) {
     throw new Error('Unable to load buses from the server.');
   }
@@ -27,6 +25,8 @@ export async function getBuses(): Promise<ApiBus[]> {
   const data = await response.json();
   return data.buses;
 }
+
+
 
 // ---------- AUTHENTICATION HELPERS ----------
 
@@ -43,11 +43,42 @@ function getAuthHeaders() {
   };
 }
 
+async function readResponse(response: Response) {
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.detail || `Request failed (${response.status}).`
+    );
+  }
+
+  return data;
+}
+
+// ---------- SEAT AVAILABILITY ----------
+
+export async function getOccupiedSeats(
+  busId: number,
+  journeyDate: string
+): Promise<number[]> {
+  const query = new URLSearchParams({
+    journey_date: journeyDate,
+  });
+
+  const response = await fetch(
+    `${API_BASE_URL}/buses/${busId}/occupied-seats?${query}`
+  );
+
+  const data = await readResponse(response);
+  return data.seat_numbers;
+}
+
 // ---------- BOOKINGS ----------
 
 export type CreateBookingRequest = {
   bus_id: number;
-  seats_booked: number;
+  journey_date: string;
+  seat_numbers: number[];
 };
 
 export async function createBooking(
@@ -56,16 +87,15 @@ export async function createBooking(
   const response = await fetch(`${API_BASE_URL}/bookings`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(booking),
+    body: JSON.stringify({
+      bus_id: booking.bus_id,
+      journey_date: booking.journey_date,
+      seat_numbers: booking.seat_numbers,
+      seats_booked: booking.seat_numbers.length,
+    }),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'Booking failed.');
-  }
-
-  return data;
+  return readResponse(response);
 }
 
 export async function cancelBookingApi(bookingId: number) {
@@ -77,30 +107,16 @@ export async function cancelBookingApi(bookingId: number) {
     }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'Cancellation failed.');
-  }
-
-  return data;
+  return readResponse(response);
 }
 
 export async function getUserBookings(userId: number) {
   const response = await fetch(
     `${API_BASE_URL}/bookings/${userId}`,
-    {
-      headers: getAuthHeaders(),
-    }
+    { headers: getAuthHeaders() }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'Unable to load bookings.');
-  }
-
-  return data;
+  return readResponse(response);
 }
 
 // ---------- REGISTRATION ----------
@@ -115,19 +131,11 @@ export type RegisterUserRequest = {
 export async function registerUser(user: RegisterUserRequest) {
   const response = await fetch(`${API_BASE_URL}/register`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(user),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'User registration failed.');
-  }
-
-  return data;
+  return readResponse(response);
 }
 
 // ---------- LOGIN ----------
@@ -140,19 +148,11 @@ export type LoginRequest = {
 export async function loginUser(credentials: LoginRequest) {
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(credentials),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'Login failed.');
-  }
-
-  return data;
+  return readResponse(response);
 }
 
 // ---------- USER PROFILE ----------
@@ -169,12 +169,7 @@ export async function getMyProfile(): Promise<ApiUser> {
     headers: getAuthHeaders(),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'Unable to load your profile.');
-  }
-
+  const data = await readResponse(response);
   return data.user;
 }
 
@@ -187,12 +182,7 @@ export async function updateMyProfile(
     body: JSON.stringify(updates),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'Unable to update your profile.');
-  }
-
+  const data = await readResponse(response);
   return data.user;
 }
 
@@ -216,12 +206,7 @@ export async function getSavedPassengers(): Promise<ApiSavedPassenger[]> {
     headers: getAuthHeaders(),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'Unable to load saved passengers.');
-  }
-
+  const data = await readResponse(response);
   return data.passengers;
 }
 
@@ -234,12 +219,7 @@ export async function addSavedPassenger(
     body: JSON.stringify(passenger),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'Unable to save passenger.');
-  }
-
+  const data = await readResponse(response);
   return data.passenger;
 }
 
@@ -254,9 +234,5 @@ export async function deleteSavedPassenger(
     }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || 'Unable to delete passenger.');
-  }
+  await readResponse(response);
 }

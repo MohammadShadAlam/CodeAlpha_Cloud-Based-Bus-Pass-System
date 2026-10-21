@@ -243,3 +243,205 @@
   outline: 2px solid #6366f1;
   outline-offset: 3px;
 }
+
+
+/* ---------- Online bookings: Tripzo theme ---------- */
+.online-bookings-section,
+.browser-demo-section {
+  margin-bottom: 42px;
+}
+
+.online-bookings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.online-bookings-title {
+  margin: 0 0 7px;
+  font-family: Outfit, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #2c1a48;
+}
+
+.online-bookings-subtitle {
+  margin: 0;
+  color: #5b4f68;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.online-refresh-btn {
+  flex: none;
+}
+
+.online-history-list {
+  max-width: 850px;
+  gap: 14px;
+}
+
+.online-history-item {
+  padding: 21px 24px;
+  border-radius: 11px;
+  background: #fff;
+  border: 1px solid #e9e1ef;
+}
+
+.online-history-route {
+  align-items: center;
+  gap: 14px;
+}
+
+.online-history-route > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.online-history-route > div:last-child {
+  text-align: right;
+}
+
+.online-history-route strong {
+  overflow-wrap: anywhere;
+}
+
+.online-history-route p {
+  margin: 7px 0 0;
+  line-height: 1.5;
+}
+
+.online-route-arrow {
+  flex: none;
+  color: #765727;
+}
+
+.online-operator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  color: #5b4f68;
+  font-size: 12px;
+}
+
+.online-operator svg {
+  color: #76509a;
+  flex: none;
+}
+
+.online-booking-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid #f0eaf4;
+}
+
+.online-booking-details > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.online-booking-details > div > span {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  color: #6a5e76;
+}
+
+.online-booking-details > div > strong {
+  font-family: Outfit, sans-serif;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+  color: #35204e;
+}
+
+.online-booking-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+  padding-top: 15px;
+  border-top: 1px solid #f0eaf4;
+}
+
+.online-booking-actions .danger-btn {
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.online-booking-actions .danger-btn:hover:not(:disabled) {
+  background: #fff0f0;
+  border-color: #e8bfc3;
+}
+
+.online-booking-actions .danger-btn:disabled {
+  opacity: 0.6;
+}
+
+.online-bookings-error .primary-btn {
+  margin: 8px auto 0;
+}
+
+.browser-demo-empty {
+  color: #5b4f68;
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .online-bookings-heading {
+    align-items: flex-start;
+  }
+
+  .online-bookings-title {
+    font-size: 21px;
+  }
+
+  .online-history-item {
+    padding: 17px;
+  }
+
+  .online-history-route {
+    gap: 8px;
+  }
+
+  .online-history-route strong {
+    font-size: 17px;
+  }
+
+  .online-history-route p {
+    font-size: 10px;
+  }
+
+  .online-booking-details {
+    gap: 12px 8px;
+  }
+
+  .online-booking-details > div > span {
+    font-size: 8px;
+    letter-spacing: 0.3px;
+  }
+
+  .online-booking-details > div > strong {
+    font-size: 14px;
+  }
+
+  .online-booking-actions .danger-btn {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .online-bookings-heading {
+    flex-direction: column;
+  }
+
+  .online-history-route strong {
+    font-size: 15px;
+  }
+}

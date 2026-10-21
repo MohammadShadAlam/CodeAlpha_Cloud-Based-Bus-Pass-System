@@ -1,9 +1,16 @@
 
-from sqlalchemy import String, Integer, Boolean, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import date
+
+from sqlalchemy import (
+    String,
+    Integer,
+    Boolean,
+    ForeignKey,
+    Date,
+)
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
-
 
 
 class User(Base):
@@ -23,7 +30,6 @@ class User(Base):
         String(255), nullable=True
     )
 
-   
 
 class Bus(Base):
     __tablename__ = "buses"
@@ -53,8 +59,38 @@ class Booking(Base):
         ForeignKey("buses.id")
     )
     seats_booked: Mapped[int] = mapped_column(Integer)
+
+    # Nullable to preserve legacy bookings with unknown dates.
+    journey_date: Mapped[date | None] = mapped_column(
+        Date, nullable=True
+    )
+
     booking_status: Mapped[str] = mapped_column(
         String(30), default="confirmed"
+    )
+
+
+class BookingSeat(Base):
+    __tablename__ = "booking_seats"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True
+    )
+    booking_id: Mapped[int] = mapped_column(
+        ForeignKey("bookings.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    bus_id: Mapped[int] = mapped_column(
+        ForeignKey("buses.id"), nullable=False
+    )
+    journey_date: Mapped[date] = mapped_column(
+        Date, nullable=False
+    )
+    seat_number: Mapped[int] = mapped_column(
+        Integer, nullable=False
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True
     )
 
 
@@ -64,11 +100,15 @@ class SavedPassenger(Base):
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, index=True
     )
-
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"), index=True, nullable=False
     )
-
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    age: Mapped[int] = mapped_column(Integer, nullable=False)
-    gender: Mapped[str] = mapped_column(String(30), nullable=False)
+    name: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )
+    age: Mapped[int] = mapped_column(
+        Integer, nullable=False
+    )
+    gender: Mapped[str] = mapped_column(
+        String(30), nullable=False
+    )
