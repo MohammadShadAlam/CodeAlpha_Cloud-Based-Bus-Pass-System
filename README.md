@@ -4,7 +4,7 @@ Tripzo is a web-based bus booking application designed to help users search for 
 
 ## Live Demo
 
-- **Frontend:** https://code-alpha-bus-pass-sys-xi.vercel.app
+- **Frontend:** https://code-alpha-cloud-based-bus-pass-sys-xi.vercel.app/
 - **Backend API:** https://codealpha-cloud-based-bus-pass-system-k9ih.onrender.com
 - **API Documentation:** https://codealpha-cloud-based-bus-pass-system-k9ih.onrender.com/docs
 
